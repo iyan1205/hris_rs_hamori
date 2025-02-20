@@ -8,13 +8,23 @@ class AttendanceList extends StatelessWidget {
   const AttendanceList({super.key, required this.attendanceList});
 
   String formatDateTime(DateTime dateTime) {
-    DateTime localTime = dateTime.toLocal();
-    return DateFormat('dd-MM-yyyy HH:mm:ss').format(localTime);
+    return DateFormat('dd-MM-yyyy HH:mm').format(dateTime.toLocal());
   }
 
   String formatDate(DateTime dateTime) {
-    DateTime localTime = dateTime.toLocal();
-    return DateFormat('dd-MM-yyyy').format(localTime);
+    return DateFormat('dd-MM-yyyy').format(dateTime.toLocal());
+  }
+
+  /// Konversi totalHours dari format HH:mm ke jumlah jam dalam angka
+  double convertToHours(String totalHours) {
+    try {
+      List<String> parts = totalHours.split(':');
+      int hours = int.parse(parts[0]);
+      int minutes = int.parse(parts[1]);
+      return hours + (minutes / 60); // Menjadikan menit sebagai desimal
+    } catch (e) {
+      return 0.0; // Jika format salah, default 0.0
+    }
   }
 
   @override
@@ -26,12 +36,57 @@ class AttendanceList extends StatelessWidget {
       itemBuilder: (context, index) {
         Attendance attendance = attendanceList[index];
 
+        // Jika status "pulang", ubah menjadi "HADIR"
+        String status = attendance.status.toLowerCase() == "pulang"
+            ? "HADIR"
+            : attendance.status.toUpperCase();
+
+        // Konversi totalHours ke angka sebelum dibandingkan
+        double totalHoursAsNumber = convertToHours(attendance.totalHours);
+        bool isOvertime = totalHoursAsNumber > 12;
+
+        // Cek apakah belum check-out
+        bool isNotCheckedOut = attendance.jamKeluar == null;
+
         return AttendanceCard(
           date: formatDate(attendance.createdAt),
-          status: attendance.status,
+          status: status,
           totalHours: attendance.totalHours,
-          inOut:
-              '${formatDateTime(attendance.createdAt)} - ${attendance.jamKeluar != null ? formatDateTime(attendance.updatedAt) : "Belum Check Out"}',
+          inOutWidget: RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              children: [
+                TextSpan(
+                  text:
+                      formatDateTime(attendance.createdAt), // Tanggal Check-in
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const TextSpan(
+                  text: ' - ',
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                TextSpan(
+                  text: isNotCheckedOut
+                      ? 'Belum Check-out'
+                      : formatDateTime(attendance
+                          .updatedAt), // Tanggal Check-out atau teks "Belum Check-out"
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isNotCheckedOut
+                        ? Colors.orange
+                        : Colors.black87, // Warna hanya untuk "Belum Check-out"
+                  ),
+                ),
+              ],
+            ),
+          ),
+          isOvertime: isOvertime,
+          isNotCheckedOut: isNotCheckedOut,
         );
       },
     );
@@ -42,34 +97,43 @@ class AttendanceCard extends StatelessWidget {
   final String date;
   final String status;
   final String totalHours;
-  final String inOut;
+  final Widget inOutWidget;
+  final bool isOvertime;
+  final bool isNotCheckedOut;
 
   const AttendanceCard({
     super.key,
     required this.date,
     required this.status,
     required this.totalHours,
-    required this.inOut,
+    required this.inOutWidget,
+    required this.isOvertime,
+    required this.isNotCheckedOut,
   });
 
-  Color _getStatusColor(String status) {
-    return status.toLowerCase() == "hadir" ? Colors.red : Colors.green;
+  /// Warna status tergantung apakah sudah check-out atau belum
+  Color _getStatusColor() {
+    if (isNotCheckedOut) return Colors.orange; // Belum check-out (Warna Oranye)
+    return status.toLowerCase() == "hadir" ? Colors.green : Colors.red;
   }
 
-  IconData _getStatusIcon(String status) {
-    return status.toLowerCase() == "hadir" ? Icons.error : Icons.check_circle;
+  /// Ikon status tergantung apakah sudah check-out atau belum
+  IconData _getStatusIcon() {
+    if (isNotCheckedOut) return Icons.warning; // Belum check-out (Tanda Seru)
+    return status.toLowerCase() == "hadir" ? Icons.check_circle : Icons.error;
   }
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 3,
+      color: Colors.white,
+      elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(15.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -82,17 +146,17 @@ class AttendanceCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
+                    color: Colors.black87,
                   ),
                 ),
                 Chip(
-                  backgroundColor: _getStatusColor(status).withOpacity(0.1),
+                  backgroundColor: _getStatusColor().withOpacity(0.1),
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _getStatusIcon(status),
-                        color: _getStatusColor(status),
+                        _getStatusIcon(),
+                        color: _getStatusColor(),
                         size: 18,
                       ),
                       const SizedBox(width: 5),
@@ -101,7 +165,7 @@ class AttendanceCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _getStatusColor(status),
+                          color: _getStatusColor(),
                         ),
                       ),
                     ],
@@ -130,14 +194,24 @@ class AttendanceCard extends StatelessWidget {
                 ),
                 Text(
                   totalHours,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: isOvertime ? Colors.red : Colors.black87,
                   ),
                 ),
               ],
             ),
+
+            if (isOvertime)
+              const Text(
+                'Tidak absen pulang',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
 
             const SizedBox(height: 8),
             const Divider(),
@@ -150,14 +224,7 @@ class AttendanceCard extends StatelessWidget {
                 color: Colors.grey,
               ),
             ),
-            Text(
-              inOut,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
+            inOutWidget,
           ],
         ),
       ),

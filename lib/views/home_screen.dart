@@ -4,7 +4,7 @@ import 'package:hris_rs_hamori/services/api_service.dart';
 import 'package:hris_rs_hamori/models/response_list_attendance.dart';
 import 'package:hris_rs_hamori/theme.dart';
 import 'package:hris_rs_hamori/utils/storage_helper.dart';
-import 'package:hris_rs_hamori/widgets/add_attendance_widgets.dart';
+import 'package:hris_rs_hamori/views/add_attendance_screen.dart';
 import 'package:hris_rs_hamori/widgets/attendance_widgets.dart';
 import 'login_screen.dart';
 
@@ -48,38 +48,38 @@ class HomeScreen extends StatelessWidget {
 
           final employeeData = employeeSnapshot.data!;
 
-          return FutureBuilder<List<Attendance>>(
-            future: _fetchAttendance(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError) {
-                return const Center(child: Text('Error loading data'));
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(
-                    child: Text('No attendance records found.'));
-              }
-
-              List<Attendance> attendanceList = snapshot.data!;
-
-              return SingleChildScrollView(
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Bagian atas dengan background putih
+              Container(
+                color: Colors.white,
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 8),
                     Row(
                       children: [
                         CircleAvatar(
                           radius: 30,
-                          backgroundImage: employeeData['image'] != null &&
-                                  employeeData['image']!.isNotEmpty
-                              ? NetworkImage(employeeData['image']!)
-                              : null,
-                          child: employeeData['image'] == null ||
-                                  employeeData['image']!.isEmpty
-                              ? const Icon(Icons.person, size: 30)
-                              : null,
+                          backgroundImage: null,
+                          child: ClipOval(
+                            child: Image.network(
+                              "${employeeData['image']}?t=${DateTime.now().millisecondsSinceEpoch}",
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(
+                                    child: CircularProgressIndicator());
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.person, size: 30);
+                              },
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -118,23 +118,51 @@ class HomeScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    AttendanceList(attendanceList: attendanceList),
                   ],
                 ),
-              );
-            },
+              ),
+
+              Expanded(
+                child: Container(
+                  color: Colors.grey[50],
+                  child: FutureBuilder<List<Attendance>>(
+                    future: _fetchAttendance(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return const Center(child: Text('Error loading data'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(
+                            child: Text('No attendance records found.'));
+                      }
+
+                      List<Attendance> attendanceList = snapshot.data!;
+
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: AttendanceList(attendanceList: attendanceList),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
+        color: hrisAppSea,
         child: Container(height: 50.0),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Get.to(
-              () => AddAttendanceScreen()); // Navigate to AddAttendanceScreen
+        backgroundColor: hrisAppGreen,
+        onPressed: () async {
+          bool? result = await Get.to(() => AddAttendanceScreen());
+          if (result == true) {
+            Get.forceAppUpdate();
+          }
         },
         child: const Icon(Icons.add),
       ),

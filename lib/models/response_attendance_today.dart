@@ -11,40 +11,40 @@ String responseAttendanceTodayToJson(ResponseAttendanceToday data) =>
     json.encode(data.toJson());
 
 class ResponseAttendanceToday {
-  final Attendance attendance;
+  final AttendanceToday attendanceToday;
   final int totalAttendanceToday;
 
   ResponseAttendanceToday({
-    required this.attendance,
+    required this.attendanceToday,
     required this.totalAttendanceToday,
   });
 
   factory ResponseAttendanceToday.fromJson(Map<String, dynamic> json) =>
       ResponseAttendanceToday(
-        attendance: Attendance.fromJson(json["attendance"]),
+        attendanceToday: AttendanceToday.fromJson(json["attendanceToday"]),
         totalAttendanceToday: json["totalAttendanceToday"],
       );
 
   Map<String, dynamic> toJson() => {
-        "attendance": attendance.toJson(),
+        "attendanceToday": attendanceToday.toJson(),
         "totalAttendanceToday": totalAttendanceToday,
       };
 }
 
-class Attendance {
-  final int id;
-  final String userId;
-  final String jamMasuk;
-  final String fotoJamMasuk;
-  final dynamic jamKeluar;
-  final dynamic fotoJamKeluar;
-  final String status;
-  final String ipAddress;
-  final String deviceInfo;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+class AttendanceToday {
+  int id;
+  String userId;
+  String jamMasuk;
+  String fotoJamMasuk;
+  dynamic jamKeluar;
+  dynamic fotoJamKeluar;
+  String status;
+  String ipAddress;
+  String deviceInfo;
+  DateTime createdAt;
+  DateTime updatedAt;
 
-  Attendance({
+  AttendanceToday({
     required this.id,
     required this.userId,
     required this.jamMasuk,
@@ -58,7 +58,8 @@ class Attendance {
     required this.updatedAt,
   });
 
-  factory Attendance.fromJson(Map<String, dynamic> json) => Attendance(
+  factory AttendanceToday.fromJson(Map<String, dynamic> json) =>
+      AttendanceToday(
         id: json["id"],
         userId: json["user_id"],
         jamMasuk: json["jam_masuk"],
