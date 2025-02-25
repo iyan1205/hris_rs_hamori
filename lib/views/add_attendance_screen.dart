@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:hris_rs_hamori/models/response_attendance_today.dart';
 import 'package:hris_rs_hamori/services/api_service.dart';
 import 'package:hris_rs_hamori/theme.dart';
@@ -9,10 +10,10 @@ class AddAttendanceScreen extends StatefulWidget {
   const AddAttendanceScreen({super.key});
 
   @override
-  _AddAttendanceScreenState createState() => _AddAttendanceScreenState();
+  AddAttendanceScreenState createState() => AddAttendanceScreenState();
 }
 
-class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
+class AddAttendanceScreenState extends State<AddAttendanceScreen> {
   File? _image;
   final ImagePicker _picker = ImagePicker();
 
@@ -25,62 +26,87 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
     }
   }
 
-  Future<Map<String, String>> _fetchEmployeeInfo() async {
+  Future<Map<String, String>> fetchEmployeeInfo() async {
     return await ApiService.getEmployeeInfo();
   }
 
   Future<AttendanceToday> _fetchAttendanceToday() async {
     final response = await ApiService.getAttendanceToday();
-    return response.attendanceToday ??
-        AttendanceToday(
-          id: 0,
-          userId: "",
-          jamMasuk: "",
-          fotoJamMasuk: "",
-          jamKeluar: null,
-          fotoJamKeluar: null,
-          status: "",
-          ipAddress: "",
-          deviceInfo: "",
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
+    return response.attendanceToday;
+  }
+
+  Future<int> fetchTotalAttendance() async {
+    final response = await ApiService.getAttendanceToday();
+    return response.totalAttendanceToday;
   }
 
   Future<void> _checkIn() async {
     if (_image == null) {
-      _showSnackBar('Silakan ambil foto terlebih dahulu');
+      _showSnackBar('Silakan ambil foto terlebih dahulu', isError: true);
       return;
     }
+
     bool success = await ApiService.checkIn(_image!);
-    _showSnackBar(success ? 'Check-In berhasil' : 'Check-In gagal');
-    if (success) Navigator.pop(context, true);
+
+    if (mounted) {
+      _showSnackBar(success ? 'Check-In berhasil' : 'Check-In gagal',
+          isError: !success);
+      if (success) Navigator.pop(context, true);
+    }
   }
 
   Future<void> _checkOut() async {
     if (_image == null) {
-      _showSnackBar('Silakan ambil foto terlebih dahulu');
+      _showSnackBar('Silakan ambil foto terlebih dahulu', isError: true);
       return;
     }
+
     bool success = await ApiService.checkOut(_image!);
-    _showSnackBar(success ? 'Check-Out berhasil' : 'Check-Out gagal');
-    if (success) Navigator.pop(context, true);
+
+    if (mounted) {
+      _showSnackBar(success ? 'Check-Out berhasil' : 'Check-Out gagal',
+          isError: !success);
+      if (success) Navigator.pop(context, true);
+    }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+  void _showSnackBar(String message, {bool isError = false}) {
+    Get.snackbar(
+      isError ? 'Error' : 'Success',
+      message,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: isError ? Colors.red : Colors.green,
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(10),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Absensi'),
-        backgroundColor: hrisAppBlue,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF001F3F), Color(0xFF39CCCC)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: AppBar(
+            title: const Text('Absensi', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ),
       ),
       body: FutureBuilder<Map<String, String>>(
-        future: _fetchEmployeeInfo(),
+        future: fetchEmployeeInfo(),
         builder: (context, employeeSnapshot) {
           if (employeeSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -91,143 +117,162 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
 
           final employeeData = employeeSnapshot.data!;
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: <Widget>[
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          return FutureBuilder<AttendanceToday>(
+            future: _fetchAttendanceToday(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return const Center(child: Text('Error loading data'));
+              }
+
+              final attendanceToday = snapshot.data!;
+              bool isCheckedIn = attendanceToday.id != 0;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
                       children: [
-                        Text(
-                          'Nama: ${employeeData['name'] ?? '-'}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Jabatan: ${employeeData['position'] ?? '-'}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                employeeData['name'] ?? '',
+                                style: const TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                employeeData['position'] ?? '',
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.grey),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                employeeData['nik'] ?? '',
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.grey),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                FutureBuilder<AttendanceToday>(
-                  future: _fetchAttendanceToday(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Center(child: Text('Error loading data'));
-                    }
+                  FutureBuilder<int>(
+                    future: fetchTotalAttendance(),
+                    builder: (context, totalSnapshot) {
+                      if (totalSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (totalSnapshot.hasError) {
+                        return const Center(
+                            child: Text('Error loading total attendance'));
+                      }
 
-                    final attendanceToday = snapshot.data!;
-                    return Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
+                      final totalAttendance = totalSnapshot.data ?? 0;
+
+                      return Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Absen Hari Ini',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Divider(),
-                            Text(
-                              'Status: ${attendanceToday.status}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Jam Masuk: ${attendanceToday.jamMasuk ?? '-'}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Jam Keluar: ${attendanceToday.jamKeluar ?? '-'}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 16),
-                            if (attendanceToday.id == 0) ...[
-                              _buildImagePicker(),
-                              const SizedBox(height: 8),
-                              _buildButton(_checkIn, 'Check-In', Colors.green),
-                            ] else if (attendanceToday.status == 'hadir') ...[
-                              _buildImagePicker(),
-                              const SizedBox(height: 8),
-                              _buildButton(
-                                  _checkOut, 'Check-Out', Colors.orange),
-                            ],
-                          ],
+                        child: Text(
+                          'Total Kehadiran Aktif: $totalAttendance',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _buildImagePicker(),
+                        const SizedBox(height: 20),
+                        _buildButton(
+                          isCheckedIn ? _checkOut : _checkIn,
+                          isCheckedIn ? 'Check-Out' : 'Check-In',
+                          isCheckedIn ? Colors.orange : Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
+      backgroundColor: hamoriWhite,
     );
   }
 
   Widget _buildImagePicker() {
     return Column(
       children: [
+        if (_image != null) ...[
+          Container(
+            height: 300,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(_image!, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         ElevatedButton.icon(
           onPressed: _pickImage,
-          icon: const Icon(Icons.camera_alt),
+          icon: const Icon(Icons.camera_alt, color: Colors.white),
           label: const Text('Ambil Foto'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: hrisAppBlue,
+            backgroundColor: hrisAppGrey,
             foregroundColor: Colors.white,
           ),
         ),
-        if (_image != null) ...[
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.file(_image!, height: 120),
-          ),
-        ],
       ],
     );
   }
 
   Widget _buildButton(VoidCallback onPressed, String text, Color color) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
+        child: Text(text, style: const TextStyle(fontSize: 16)),
       ),
-      child: Text(text, style: const TextStyle(fontSize: 16)),
     );
   }
 }

@@ -140,40 +140,40 @@ class AttendanceCard extends StatelessWidget {
             // Tanggal & Status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+                children: [
                 Text(
                   date,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                   ),
                 ),
                 Chip(
-                  backgroundColor: _getStatusColor().withOpacity(0.1),
+                  backgroundColor: _getStatusColor().withAlpha(25),
                   label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _getStatusIcon(),
-                        color: _getStatusColor(),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: _getStatusColor(),
-                        ),
-                      ),
-                    ],
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                    _getStatusIcon(),
+                    color: _getStatusColor(),
+                    size: 18,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                    status.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _getStatusColor(),
+                    ),
+                    ),
+                  ],
                   ),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ],

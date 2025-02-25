@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hris_rs_hamori/controllers/login_controller.dart';
+import 'package:hris_rs_hamori/theme.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
@@ -17,9 +18,12 @@ class LoginScreen extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.blue.shade800, Colors.blue.shade400],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF39CCCC), // Teal
+                      Color(0xFF001F3F), // Navy
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
               ),
@@ -33,7 +37,7 @@ class LoginScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Login',
+                        'HRIS',
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
@@ -47,15 +51,15 @@ class LoginScreen extends StatelessWidget {
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          labelStyle: TextStyle(color: Colors.white),
+                          labelStyle: TextStyle(color: Colors.black87),
                           filled: true,
-                          fillColor: Colors.white.withValues(alpha: 230),
+                          fillColor: Colors.white.withValues(alpha: 100),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 20),
+                              vertical: 12, horizontal: 20),
                         ),
                       ),
                       SizedBox(height: 15),
@@ -65,37 +69,52 @@ class LoginScreen extends StatelessWidget {
                         obscureText: true,
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          labelStyle: TextStyle(color: Colors.white),
+                          labelStyle: TextStyle(color: Colors.black87),
                           filled: true,
-                          fillColor: Colors.white.withValues(alpha: 230),
+                          fillColor: Colors.white.withValues(alpha: 100),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 20),
+                              vertical: 12, horizontal: 20),
                         ),
                       ),
                       SizedBox(height: 20),
                       // Login Button
                       Obx(() => loginController.isLoading.value
                           ? CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation(Colors.blue.shade900),
+                              valueColor: AlwaysStoppedAnimation(
+                                  hamoriLightTiel.withAlpha(150)),
                             )
-                          : ElevatedButton(
-                              onPressed: loginController.login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue.shade700,
-                                minimumSize: Size(double.infinity, 50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                          : Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color(0xFF001F3F), // Navy
+                                    Color(0xFF39CCCC), // Teal
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
                               ),
-                              child: Text(
-                                'Login',
-                                style: TextStyle(
-                                    fontSize: 18, color: Colors.white),
+                              child: ElevatedButton(
+                                onPressed: loginController.login,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors
+                                      .transparent, // Make button transparent
+                                  minimumSize: Size(double.infinity, 50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Login',
+                                  style: TextStyle(
+                                      fontSize: 18, color: Colors.white),
+                                ),
                               ),
                             )),
                     ],

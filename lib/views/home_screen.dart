@@ -22,18 +22,31 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('HRIS'),
-        backgroundColor: hrisAppSea,
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await StorageHelper.logout();
-              Get.offAll(() => LoginScreen());
-            },
-            icon: const Icon(Icons.logout),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF001F3F), Color(0xFF39CCCC)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ],
+          child: AppBar(
+            title: const Text('HRIS', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              IconButton(
+                onPressed: () async {
+                  await StorageHelper.logout();
+                  Get.offAll(() => LoginScreen());
+                },
+                icon: const Icon(Icons.logout, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
       ),
       body: FutureBuilder<Map<String, String>>(
         future: _fetchEmployeeInfo(),
@@ -124,7 +137,7 @@ class HomeScreen extends StatelessWidget {
 
               Expanded(
                 child: Container(
-                  color: Colors.grey[50],
+                  color: hamoriWhite,
                   child: FutureBuilder<List<Attendance>>(
                     future: _fetchAttendance(),
                     builder: (context, snapshot) {
@@ -151,13 +164,35 @@ class HomeScreen extends StatelessWidget {
           );
         },
       ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        color: hrisAppSea,
-        child: Container(height: 50.0),
+      bottomNavigationBar: Stack(
+        children: [
+          // Background Gradient Full pada Bottom Navigation Bar
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 7, 25, 82), // hamoriNavy
+                    Color.fromARGB(255, 8, 131, 149), // hamoriTiel
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+          // BottomAppBar dengan transparan agar tidak menghalangi gradient
+          BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            color: Colors.transparent, // Pastikan transparan
+            elevation: 0,
+            child: Container(height: 60.0), // Pastikan tingginya sesuai
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: hrisAppGreen,
+        backgroundColor: hamoriTiel,
+        foregroundColor: Colors.white,
         onPressed: () async {
           bool? result = await Get.to(() => AddAttendanceScreen());
           if (result == true) {

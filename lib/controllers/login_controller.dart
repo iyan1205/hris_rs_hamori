@@ -19,7 +19,12 @@ class LoginController extends GetxController {
     if (isSuccess) {
       Get.offAll(() => HomeScreen());
     } else {
-      Get.snackbar('Error', 'Login gagal. Cek email dan password!');
+      Get.snackbar(
+        'Error',
+        'Login gagal. Cek email dan password!',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 }
