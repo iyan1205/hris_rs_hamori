@@ -16,6 +16,7 @@ class HomeController extends GetxController {
 
   void fetchData() async {
     isLoading.value = true;
+    errorMessage.value = "";
     try {
       var employee = await ApiService.getEmployeeInfo();
       var attendance = await ApiService.getAttendanceList();
@@ -23,7 +24,7 @@ class HomeController extends GetxController {
       employeeData.value = employee;
       attendanceList.value = attendance;
     } catch (e) {
-      errorMessage.value = "Gagal mengambil data. Coba lagi.";
+      errorMessage.value = "Gagal mengambil data.";
     } finally {
       isLoading.value = false;
     }

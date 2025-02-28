@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hris_rs_hamori/services/api_service.dart';
 import 'package:hris_rs_hamori/views/home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginController extends GetxController {
-  var isLoading = false.obs;
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  var isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadRememberedLogin();
+  }
 
   void login() async {
     isLoading(true);
@@ -25,6 +32,15 @@ class LoginController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  void loadRememberedLogin() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool rememberMe = prefs.getBool('rememberMe') ?? false;
+    if (rememberMe) {
+      emailController.text = prefs.getString('email') ?? '';
+      passwordController.text = prefs.getString('password') ?? '';
     }
   }
 }

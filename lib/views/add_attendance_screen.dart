@@ -1,85 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hris_rs_hamori/models/response_attendance_today.dart';
-import 'package:hris_rs_hamori/services/api_service.dart';
+import 'package:hris_rs_hamori/controllers/attendance_controller.dart';
 import 'package:hris_rs_hamori/theme.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
-class AddAttendanceScreen extends StatefulWidget {
-  const AddAttendanceScreen({super.key});
+class AddAttendanceScreen extends StatelessWidget {
+  final AttendanceController controller = Get.put(AttendanceController());
 
-  @override
-  AddAttendanceScreenState createState() => AddAttendanceScreenState();
-}
-
-class AddAttendanceScreenState extends State<AddAttendanceScreen> {
-  File? _image;
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-    }
-  }
-
-  Future<Map<String, String>> fetchEmployeeInfo() async {
-    return await ApiService.getEmployeeInfo();
-  }
-
-  Future<AttendanceToday> _fetchAttendanceToday() async {
-    final response = await ApiService.getAttendanceToday();
-    return response.attendanceToday;
-  }
-
-  Future<int> fetchTotalAttendance() async {
-    final response = await ApiService.getAttendanceToday();
-    return response.totalAttendanceToday;
-  }
-
-  Future<void> _checkIn() async {
-    if (_image == null) {
-      _showSnackBar('Silakan ambil foto terlebih dahulu', isError: true);
-      return;
-    }
-
-    bool success = await ApiService.checkIn(_image!);
-
-    if (mounted) {
-      _showSnackBar(success ? 'Check-In berhasil' : 'Check-In gagal',
-          isError: !success);
-      if (success) Navigator.pop(context, true);
-    }
-  }
-
-  Future<void> _checkOut() async {
-    if (_image == null) {
-      _showSnackBar('Silakan ambil foto terlebih dahulu', isError: true);
-      return;
-    }
-
-    bool success = await ApiService.checkOut(_image!);
-
-    if (mounted) {
-      _showSnackBar(success ? 'Check-Out berhasil' : 'Check-Out gagal',
-          isError: !success);
-      if (success) Navigator.pop(context, true);
-    }
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    Get.snackbar(
-      isError ? 'Error' : 'Success',
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: isError ? Colors.red : Colors.green,
-      colorText: Colors.white,
-      margin: const EdgeInsets.all(10),
-    );
-  }
+  AddAttendanceScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -102,151 +29,161 @@ class AddAttendanceScreenState extends State<AddAttendanceScreen> {
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: () {
+                  // Add your refresh logic here
+                  controller.fetchAttendanceData();
+                },
+              ),
+            ],
           ),
         ),
       ),
-      body: FutureBuilder<Map<String, String>>(
-        future: fetchEmployeeInfo(),
-        builder: (context, employeeSnapshot) {
-          if (employeeSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (employeeSnapshot.hasError || employeeSnapshot.data == null) {
-            return const Center(child: Text('Error loading employee data'));
-          }
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          final employeeData = employeeSnapshot.data!;
-
-          return FutureBuilder<AttendanceToday>(
-            future: _fetchAttendanceToday(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return const Center(child: Text('Error loading data'));
-              }
-
-              final attendanceToday = snapshot.data!;
-              bool isCheckedIn = attendanceToday.id != 0;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                employeeData['name'] ?? '',
-                                style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                employeeData['position'] ?? '',
-                                style: const TextStyle(
-                                    fontSize: 16, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                employeeData['nik'] ?? '',
-                                style: const TextStyle(
-                                    fontSize: 16, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  FutureBuilder<int>(
-                    future: fetchTotalAttendance(),
-                    builder: (context, totalSnapshot) {
-                      if (totalSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (totalSnapshot.hasError) {
-                        return const Center(
-                            child: Text('Error loading total attendance'));
-                      }
-
-                      final totalAttendance = totalSnapshot.data ?? 0;
-
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'Total Kehadiran Aktif: $totalAttendance',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        _buildImagePicker(),
-                        const SizedBox(height: 20),
-                        _buildButton(
-                          isCheckedIn ? _checkOut : _checkIn,
-                          isCheckedIn ? 'Check-Out' : 'Check-In',
-                          isCheckedIn ? Colors.orange : Colors.green,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      ),
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildEmployeeInfo(),
+              const SizedBox(height: 10),
+              _buildAttendanceCount(),
+              const SizedBox(height: 30),
+              _buildImagePicker(),
+              const SizedBox(height: 20),
+              _buildCheckButton(),
+            ],
+          ),
+        );
+      }),
       backgroundColor: hamoriWhite,
+    );
+  }
+
+  Widget _buildEmployeeInfo() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(controller.employeeInfo['name'] ?? '',
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(controller.employeeInfo['position'] ?? '',
+              style: const TextStyle(fontSize: 16, color: Colors.grey)),
+          const SizedBox(height: 8),
+          Text(controller.employeeInfo['nik'] ?? '',
+              style: const TextStyle(fontSize: 16, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceCount() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              '${[
+                'Senin',
+                'Selasa',
+                'Rabu',
+                'Kamis',
+                'Jumat',
+                'Sabtu',
+                'Minggu'
+              ][DateTime.now().weekday - 1]}, ${DateTime.now().day} ${[
+                'Januari',
+                'Februari',
+                'Maret',
+                'April',
+                'Mei',
+                'Juni',
+                'Juli',
+                'Agustus',
+                'September',
+                'Oktober',
+                'November',
+                'Desember'
+              ][DateTime.now().month - 1]} ${DateTime.now().year}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const Divider(),
+          Text(
+            'Total Kehadiran Aktif: ${controller.totalAttendance}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Jam Check In: ${controller.jamMasuk()}',
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Total Jam Kerja: ${controller.getTotalHours()}',
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildImagePicker() {
     return Column(
       children: [
-        if (_image != null) ...[
-          Container(
-            height: 300,
+        Obx(() {
+          if (controller.selectedImage.value != null) {
+            return Container(
+              height: 270,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                image: DecorationImage(
+                  image: FileImage(controller.selectedImage.value!),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            );
+          }
+          return Container(
+            height: 270,
             width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(12),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(_image!, fit: BoxFit.cover),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
+            child: const Center(child: Text('No Image Selected')),
+          );
+        }),
+        const SizedBox(height: 8),
         ElevatedButton.icon(
-          onPressed: _pickImage,
+          onPressed: controller.pickImage,
           icon: const Icon(Icons.camera_alt, color: Colors.white),
           label: const Text('Ambil Foto'),
           style: ElevatedButton.styleFrom(
@@ -258,21 +195,37 @@ class AddAttendanceScreenState extends State<AddAttendanceScreen> {
     );
   }
 
-  Widget _buildButton(VoidCallback onPressed, String text, Color color) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+  Widget _buildCheckButton() {
+    return Obx(() {
+      if (controller.isProcessing.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return SizedBox(
+        width: double.infinity, // Tombol sepanjang layar
+        child: ElevatedButton(
+          onPressed: controller.isCheckedIn.value
+              ? controller.checkOut
+              : controller.checkIn,
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                controller.isCheckedIn.value ? Colors.orange : Colors.green,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            textStyle:
+                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          child: Text(
+            controller.isCheckedIn.value ? 'CHECK-OUT' : 'CHECK-IN',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        child: Text(text, style: const TextStyle(fontSize: 16)),
-      ),
-    );
+      );
+    });
   }
 }

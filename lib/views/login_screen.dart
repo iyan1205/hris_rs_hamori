@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hris_rs_hamori/controllers/login_controller.dart';
 import 'package:hris_rs_hamori/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
   final LoginController loginController = Get.put(LoginController());
+  final RxBool rememberMe = false.obs;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +82,19 @@ class LoginScreen extends StatelessWidget {
                               vertical: 12, horizontal: 20),
                         ),
                       ),
+                      SizedBox(height: 15),
+                      // Remember Me Checkbox
+                      Obx(() => CheckboxListTile(
+                            title: Text("Remember Me",
+                                style: TextStyle(color: Colors.white)),
+                            value: rememberMe.value,
+                            onChanged: (newValue) {
+                              rememberMe.value = newValue!;
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                            activeColor: Colors.white,
+                            checkColor: Colors.black,
+                          )),
                       SizedBox(height: 20),
                       // Login Button
                       Obx(() => loginController.isLoading.value
@@ -101,7 +116,21 @@ class LoginScreen extends StatelessWidget {
                                 ),
                               ),
                               child: ElevatedButton(
-                                onPressed: loginController.login,
+                                onPressed: () async {
+                                  if (rememberMe.value) {
+                                    SharedPreferences prefs =
+                                        await SharedPreferences.getInstance();
+                                    await prefs.setString('email',
+                                        loginController.emailController.text);
+                                    await prefs.setString(
+                                        'password',
+                                        loginController
+                                            .passwordController.text);
+                                    await prefs.setBool(
+                                        'rememberMe', rememberMe.value);
+                                  }
+                                  loginController.login();
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors
                                       .transparent, // Make button transparent

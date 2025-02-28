@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hris_rs_hamori/services/api_service.dart';
-import 'package:hris_rs_hamori/models/response_list_attendance.dart';
+import 'package:hris_rs_hamori/controllers/home_controller.dart';
 import 'package:hris_rs_hamori/theme.dart';
 import 'package:hris_rs_hamori/utils/storage_helper.dart';
 import 'package:hris_rs_hamori/views/add_attendance_screen.dart';
@@ -11,16 +10,19 @@ import 'login_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  Future<List<Attendance>> _fetchAttendance() async {
-    return await ApiService.getAttendanceList();
-  }
-
-  Future<Map<String, String>> _fetchEmployeeInfo() async {
-    return await ApiService.getEmployeeInfo();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final HomeController homeController = Get.put(HomeController());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.arguments != null && Get.arguments['message'] != null) {
+        Get.snackbar("Success", Get.arguments['message'],
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: hamoriLightTiel,
+            colorText: Colors.white);
+      }
+    });
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
@@ -44,126 +46,113 @@ class HomeScreen extends StatelessWidget {
                 },
                 icon: const Icon(Icons.logout, color: Colors.white),
               ),
+              IconButton(
+                onPressed: () {
+                  homeController.fetchData();
+                },
+                icon: const Icon(Icons.refresh, color: Colors.white),
+              ),
             ],
           ),
         ),
       ),
-      body: FutureBuilder<Map<String, String>>(
-        future: _fetchEmployeeInfo(),
-        builder: (context, employeeSnapshot) {
-          if (employeeSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (employeeSnapshot.hasError ||
-              employeeSnapshot.data == null ||
-              employeeSnapshot.data!.isEmpty) {
-            return const Center(child: Text('Error loading employee data'));
-          }
+      body: Obx(() {
+        if (homeController.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (homeController.errorMessage.isNotEmpty) {
+          return Center(child: Text(homeController.errorMessage.value));
+        }
 
-          final employeeData = employeeSnapshot.data!;
+        final employeeData = homeController.employeeData;
+        final attendanceList = homeController.attendanceList;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bagian atas dengan background putih
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundImage: null,
-                          child: ClipOval(
-                            child: Image.network(
-                              "${employeeData['image']}?t=${DateTime.now().millisecondsSinceEpoch}",
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return const Center(
-                                    child: CircularProgressIndicator());
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(Icons.person, size: 30);
-                              },
-                            ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Bagian atas dengan background putih
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundImage: null,
+                        child: ClipOval(
+                          child: Image.network(
+                            "${employeeData['image']}?t=${DateTime.now().millisecondsSinceEpoch}",
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.person, size: 30);
+                            },
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              employeeData['name'] ?? '-',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              employeeData['position'] ?? '-',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            Text(
-                              employeeData['nik'] ?? '-',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Riwayat Kehadiran',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
                       ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            employeeData['name'] ?? '-',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            employeeData['position'] ?? '-',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            employeeData['nik'] ?? '-',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Riwayat Kehadiran',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
-              Expanded(
-                child: Container(
-                  color: hamoriWhite,
-                  child: FutureBuilder<List<Attendance>>(
-                    future: _fetchAttendance(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return const Center(child: Text('Error loading data'));
-                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Center(
-                            child: Text('No attendance records found.'));
-                      }
-
-                      List<Attendance> attendanceList = snapshot.data!;
-
-                      return SingleChildScrollView(
+            Expanded(
+              child: Container(
+                color: hamoriWhite,
+                child: attendanceList.isEmpty
+                    ? const Center(child: Text('No attendance records found.'))
+                    : SingleChildScrollView(
                         padding: const EdgeInsets.all(16),
                         child: AttendanceList(attendanceList: attendanceList),
-                      );
-                    },
-                  ),
-                ),
+                      ),
               ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        );
+      }),
       bottomNavigationBar: Stack(
         children: [
           // Background Gradient Full pada Bottom Navigation Bar
@@ -196,7 +185,7 @@ class HomeScreen extends StatelessWidget {
         onPressed: () async {
           bool? result = await Get.to(() => AddAttendanceScreen());
           if (result == true) {
-            Get.forceAppUpdate();
+            homeController.fetchData();
           }
         },
         child: const Icon(Icons.add),
