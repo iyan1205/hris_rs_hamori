@@ -8,7 +8,7 @@ import 'package:hris_rs_hamori/models/response_login.dart';
 import 'package:hris_rs_hamori/utils/storage_helper.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://192.168.142.12:8484/api';
+  static const String _baseUrl = 'http://192.168.10.102:8084/api';
 
   /// Metode untuk login
   static Future<bool> login(String email, String password) async {
@@ -74,10 +74,10 @@ class ApiService {
         final data = ResponseUser.fromJson(jsonDecode(response.body));
         final karyawan = data.karyawan;
 
-        String baseUrlImage = "http://192.168.142.12:8484/storage/avatar/";
+        String baseUrlImage = "http://192.168.10.102:8084/storage/avatar/";
         String imageUrl = data.image.isNotEmpty
             ? Uri.parse(baseUrlImage + data.image).toString()
-            : "http://192.168.142.12:8484/storage/avatar/default.png";
+            : "http://192.168.10.102:8084/storage/avatar/default.png";
 
         return {
           "name": karyawan.name,
